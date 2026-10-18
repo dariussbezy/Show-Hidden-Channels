@@ -9,7 +9,7 @@ const implementation = (() => {
   const { findByProps, findByStoreName } = metro;
   const { React, ReactNative: RN } = metro.common;
 
-  const BUILD = "v1.0.2";
+  const BUILD = "v1.0.3";
   const SHEET_KEY = "hidden-channel-info";
   // text, voice, category, announcement, stage, forum, media
   const CHANNEL_TYPES = { 0: "Text channel", 2: "Voice channel", 4: "Category", 5: "Announcement channel", 13: "Stage channel", 15: "Forum", 16: "Media channel" };
@@ -449,6 +449,25 @@ const implementation = (() => {
     try { c = findByProps("transitionToChannel"); } catch (_) {}
     if (g) for (const key of Object.keys(g)) if (typeof g[key] === "function") { unpatches.push(patcher.instead(key, g, (args, orig) => guard(args, orig, key))); n++; }
     if (c && c !== g && typeof c.transitionToChannel === "function") { unpatches.push(patcher.instead("transitionToChannel", c, (args, orig) => guard(args, orig, "transitionToChannel"))); n++; }
+    // Voice/stage channels: tapping one joins the call instead of navigating, so guard the join call too.
+    const voiceGuard = (args, orig) => {
+      try {
+        if (!bypassing && cfg().showPopup) {
+          const a = args && args[0];
+          const id = a && typeof a === "object" ? a.id : a;
+          const ch = id != null ? getChannel(String(id)) : null;
+          if (ch && isHidden(ch) && openInfo(ch, () => orig(...args))) return undefined;
+        }
+      } catch (_) {}
+      return orig(...args);
+    };
+    const seen = new Set();
+    for (const name of ["selectVoiceChannel", "joinVoiceChannel", "handleVoiceChannelPress", "connectToVoiceChannel"]) {
+      try {
+        const m = findByProps(name);
+        if (m && typeof m[name] === "function" && !seen.has(m[name])) { seen.add(m[name]); unpatches.push(patcher.instead(name, m, voiceGuard)); n++; }
+      } catch (_) {}
+    }
     try {
       if (SelectedGuildStore && typeof SelectedGuildStore.addChangeListener === "function") {
         let last = currentGuildId();
