@@ -9,12 +9,12 @@ const implementation = (() => {
   const { findByProps, findByStoreName } = metro;
   const { React, ReactNative: RN } = metro.common;
 
-  const BUILD = "v1.0.0";
+  const BUILD = "v1.0.1";
   const SHEET_KEY = "hidden-channel-info";
-  const MAX_LIST = 60;
   // text, voice, category, announcement, stage, forum, media
   const CHANNEL_TYPES = { 0: "Text channel", 2: "Voice channel", 4: "Category", 5: "Announcement channel", 13: "Stage channel", 15: "Forum", 16: "Media channel" };
   const LOCK_ICONS = ["LockIcon", "ic_lock", "ic_locked"];
+  const EXPERIMENT_ID = "2026-02-private-channel-hiding";
   const CHANNEL_PATH = /\/channels\/(?:\d+|@me)\/(\d+)/;
 
   const unpatches = [];
@@ -33,7 +33,8 @@ const implementation = (() => {
   let loadRequested = false;
   let initialized = false;
   let hydrationUnsubscribe = null;
-  let sheetState = { mode: "info", channelId: null, onOpen: null };
+  let nameFixApplied = false;
+  let sheetState = { channelId: null, onOpen: null };
 
   const cfg = () => rainStore.useStore.getState();
   const setSetting = (key, value) => rainStore.useStore.getState().updateSettings({ [key]: value });
@@ -320,7 +321,34 @@ const implementation = (() => {
     return n;
   }
 
-  /* ---- sheet (info card + list) ---- */
+  /* ---- "No Access" names ---- */
+  // Discord's private-channel-hiding experiment stops sending the real names of channels you cannot access.
+  // Setting it to "Not Eligible" (bucket -1) makes Discord send them again on the next connection.
+  function experimentManager() {
+    try { const m = findByProps("overrideBucket"); return m && typeof m.overrideBucket === "function" ? m : null; } catch (_) { return null; }
+  }
+  function applyNameFix(enabled) {
+    const m = experimentManager();
+    if (!m) return false;
+    let done = false;
+    for (const kind of ["apex", "user"]) {
+      try { m.overrideBucket(kind, EXPERIMENT_ID, enabled ? -1 : null); done = true; } catch (_) {}
+    }
+    return done;
+  }
+  const isPlaceholder = (name) => /^no access$/i.test(String(name == null ? "" : name).trim());
+  function missingNames() {
+    let n = 0;
+    try {
+      for (const id of Object.keys(GuildStore.getGuilds())) {
+        const map = ChannelStore.getMutableGuildChannelsForGuild ? ChannelStore.getMutableGuildChannelsForGuild(id) : null;
+        for (const ch of map ? Object.values(map) : []) if (ch && isPlaceholder(ch.name)) n++;
+      }
+    } catch (_) {}
+    return n;
+  }
+
+  /* ---- sheet (info card) ---- */
   function sheetParts() {
     if (partsCache && partsCache.ActionSheet) return partsCache;
     let ActionSheet = null, Close = null;
@@ -354,55 +382,32 @@ const implementation = (() => {
     } catch (_) { toast("Could not open this channel"); }
   }
   function openAnyway(channelId) {
-    const go = sheetState.mode === "list" || !sheetState.onOpen ? () => navigateBypass(channelId) : sheetState.onOpen;
+    const go = sheetState.onOpen || (() => navigateBypass(channelId));
     closeSheet();
     timers.push(setTimeout(() => { try { runBypassed(go); } catch (_) { toast("Could not open this channel"); } }, 220));
   }
   function openInfo(ch, onOpen) {
-    sheetState = { mode: "info", channelId: String(ch.id), onOpen };
+    sheetState = { channelId: String(ch.id), onOpen };
     return openSheet();
   }
-  function openList() {
-    const gid = currentGuildId();
-    if (!gid) { toast("Open a server first"); return; }
-    sheetState = { mode: "list", channelId: null, onOpen: null, guildId: gid };
-    if (!openSheet()) toast("Could not open the list");
-  }
-
   function HiddenSheet() {
     const C = palette(), h = React.createElement;
-    const [sel, setSel] = React.useState(sheetState.channelId || null);
     const parts = sheetParts();
-    const fromList = sheetState.mode === "list";
-    const header = (title, subtitle) => h(RN.View, { style: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingBottom: 14 } },
-      KitTile({ k: "lock", size: 40 }),
-      h(RN.View, { style: { flex: 1 } },
-        h(RN.Text, { numberOfLines: 1, style: { color: C.text, fontSize: 20, fontWeight: "800" } }, title),
-        h(RN.Text, { numberOfLines: 2, style: { color: C.sub, fontSize: 13, marginTop: 2 } }, subtitle)),
-      parts.Close ? h(parts.Close, { onPress: closeSheet }) : null);
-    let body;
-    if (sel) {
-      const ch = getChannel(sel);
-      const rows = ch ? infoRows(ch) : [["Channel", "This channel is no longer available.", "chat"]];
-      body = h(RN.View, { style: { paddingHorizontal: 16, paddingBottom: 24 } },
-        header("Hidden channel", channelLabel(ch)),
-        h(RN.ScrollView, { style: { maxHeight: Math.round(RN.Dimensions.get("window").height * 0.55) }, showsVerticalScrollIndicator: false, nestedScrollEnabled: true },
-          h(CustomSection, { key: "info", compact: true, footer: "Discord does not send messages from channels you cannot access, so their content cannot be shown." },
-            ...rows.map((r, i) => h(CustomRow, { key: r[0], icon: r[2], title: r[0], subtitle: r[1], last: i === rows.length - 1 })))),
-        h(CustomSection, { key: "actions", compact: true },
-          ch ? h(CustomAction, { title: "Open anyway", onPress: () => openAnyway(sel) }) : null,
-          h(CustomAction, { title: fromList ? "Back" : "Close", secondary: true, onPress: () => { if (fromList) setSel(null); else closeSheet(); } })));
-    } else {
-      const list = hiddenIn(sheetState.guildId).slice(0, MAX_LIST);
-      body = h(RN.View, { style: { paddingHorizontal: 16, paddingBottom: 24 } },
-        header("Hidden channels", list.length ? list.length + (list.length === 1 ? " channel" : " channels") + " you cannot access in this server" : "Nothing hidden in this server"),
-        list.length
-          ? h(RN.ScrollView, { style: { maxHeight: Math.round(RN.Dimensions.get("window").height * 0.6) }, showsVerticalScrollIndicator: false, nestedScrollEnabled: true },
-            h(CustomSection, { key: "list", compact: true },
-              ...list.map((ch, i) => h(CustomRow, { key: ch.id, icon: "lock", title: (ch.type === 2 || ch.type === 13 ? "" : "#") + (ch.name || "channel"), subtitle: CHANNEL_TYPES[ch.type] + (ch.topic ? " \u00B7 " + clip(String(ch.topic).replace(/\s+/g, " "), 60) : ""),
-                last: i === list.length - 1, onPress: () => setSel(String(ch.id)), trailing: KitChip({ label: "Info", flush: true, onPress: () => setSel(String(ch.id)) }) }))))
-          : h(RN.Text, { style: { color: C.sub, fontSize: 14, lineHeight: 20, textAlign: "center", paddingVertical: 28 } }, "You can see every channel in this server."));
-    }
+    const ch = getChannel(sheetState.channelId);
+    const rows = ch ? infoRows(ch) : [["Channel", "This channel is no longer available.", "chat"]];
+    const body = h(RN.View, { style: { paddingHorizontal: 16, paddingBottom: 24 } },
+      h(RN.View, { style: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingBottom: 14 } },
+        KitTile({ k: "lock", size: 40 }),
+        h(RN.View, { style: { flex: 1 } },
+          h(RN.Text, { numberOfLines: 1, style: { color: C.text, fontSize: 20, fontWeight: "800" } }, "Hidden channel"),
+          h(RN.Text, { numberOfLines: 2, style: { color: C.sub, fontSize: 13, marginTop: 2 } }, channelLabel(ch))),
+        parts.Close ? h(parts.Close, { onPress: closeSheet }) : null),
+      h(RN.ScrollView, { style: { maxHeight: Math.round(RN.Dimensions.get("window").height * 0.55) }, showsVerticalScrollIndicator: false, nestedScrollEnabled: true },
+        h(CustomSection, { key: "info", compact: true, footer: "Discord does not send messages from channels you cannot access, so their content cannot be shown." },
+          ...rows.map((r, i) => h(CustomRow, { key: r[0], icon: r[2], title: r[0], subtitle: r[1], last: i === rows.length - 1 })))),
+      h(CustomSection, { key: "actions", compact: true },
+        ch ? h(CustomAction, { title: "Open anyway", onPress: () => openAnyway(sheetState.channelId) }) : null,
+        h(CustomAction, { title: "Close", secondary: true, onPress: closeSheet })));
     return parts.ActionSheet ? h(parts.ActionSheet, null, body) : body;
   }
 
@@ -506,23 +511,25 @@ const implementation = (() => {
     const [, bump] = React.useState(0);
     const C = palette(), h = React.createElement;
     const s = cfg();
-    const gid = currentGuildId();
-    const here = gid ? hiddenIn(gid).length : "-";
-    const toggle = (key, title, subtitle, icon, last) => h(CustomRow, { key, title, subtitle, icon, last: !!last,
-      trailing: h(CustomSwitch, { value: !!s[key], onChange: (v) => { setSetting(key, v); bump((x) => x + 1); nudge(); } }) });
+    const toggle = (key, title, subtitle, icon, last, after) => h(CustomRow, { key, title, subtitle, icon, last: !!last,
+      trailing: h(CustomSwitch, { value: !!s[key], onChange: (v) => { setSetting(key, v); bump((x) => x + 1); nudge(); if (after) after(v); } }) });
     const guide = h(KitGuide, { key: "guide", title: "Quick guide", steps: [
       ["Hidden channels in the list", "Channels you cannot access now show up in the channel list of every server, marked with a lock."],
       ["Tapping one", "A card shows the topic, type, creation date, last message and last pin. Open anyway tries to open the channel, but Discord does not send its messages, so it will look empty."],
       ["Not showing up?", "If the channels do not appear right after you turn the plugin on, switch to another server and back, or restart Discord once."],
-      ["Find them quickly", "Tools > List hidden channels here lists every hidden channel in the server you are in, with the same info cards."],
+      ["Names say No Access?", "Discord is rolling out a change that stops sending the names of channels you cannot access. The fix below sets that experiment to Not Eligible. Restart Discord after turning it on. If names do not come back, log out and back in once."],
     ] });
     return h(RN.ScrollView, { style: { flex: 1 }, keyboardShouldPersistTaps: "handled", contentContainerStyle: { padding: 16, paddingBottom: 42 } },
-      h(KitHero, { key: "hero", icon: "lock", title: "Show Hidden Channels", subtitle: "See channels you cannot access", stats: [["Hidden here", here], ["Servers", serversWithHidden()]] }),
+      h(KitHero, { key: "hero", icon: "lock", title: "Show Hidden Channels", subtitle: "See channels you cannot access", stats: [["Servers", serversWithHidden()], ["No Access", missingNames()]] }),
       h(CustomSection, { key: "options", title: "Options" },
         toggle("showIcon", "Show lock icon", "Mark hidden channels with a lock in the channel list.", "lock"),
         toggle("showPopup", "Show info card", "Show topic, creation date and last message before opening a hidden channel.", "guide", true)),
-      h(CustomSection, { key: "tools", title: "Tools" },
-        h(CustomAction, { title: "List hidden channels here", secondary: true, onPress: openList })),
+      h(CustomSection, { key: "names", title: "Names", footer: "Needs a restart of Discord. The No Access number above counts channels that still show the placeholder name; it should drop to 0 after the restart." },
+        toggle("fixNames", "Fix \"No Access\" names", "Set Discord's private channel hiding experiment to Not Eligible so real names come back.", "shield", true, (v) => {
+          const ok = applyNameFix(v);
+          nameFixApplied = v && ok;
+          toast(ok ? "Restart Discord to apply the change" : "Could not change the experiment");
+        })),
       guide,
       h(RN.Text, { style: { color: C.sub, fontSize: 12, textAlign: "center", marginTop: 1, opacity: 0.7 } }, "Show Hidden Channels " + BUILD));
   }
@@ -532,7 +539,7 @@ const implementation = (() => {
     if (!loadRequested || initialized) return;
     initialized = true;
     const s = cfg();
-    const defaults = { showIcon: true, showPopup: true };
+    const defaults = { showIcon: true, showPopup: true, fixNames: true };
     const missing = {};
     for (const k of Object.keys(defaults)) if (s[k] === undefined) missing[k] = defaults[k];
     if (Object.keys(missing).length) rainStore.useStore.getState().updateSettings(missing);
@@ -541,6 +548,11 @@ const implementation = (() => {
     patchNavigation();
     patchLock();
     nudge();
+    if (cfg().fixNames !== false) {
+      nameFixApplied = applyNameFix(true);
+      const missing = missingNames();
+      if (nameFixApplied && missing > 0) toast("Restart Discord once to restore " + missing + " channel " + (missing === 1 ? "name" : "names"));
+    }
   }
 
   function onLoad() {
@@ -566,6 +578,7 @@ const implementation = (() => {
     for (const t of timers.splice(0)) clearTimeout(t);
     for (const u of unpatches.splice(0)) { try { u(); } catch (_) {} }
     closeSheet();
+    if (nameFixApplied) { applyNameFix(false); nameFixApplied = false; }
     origCan = null;
     Perms = null;
     viewPermCache = null;
