@@ -9,7 +9,7 @@ const implementation = (() => {
   const { findByProps, findByStoreName } = metro;
   const { React, ReactNative: RN } = metro.common;
 
-  const BUILD = "v1.0.1";
+  const BUILD = "v1.0.2";
   const SHEET_KEY = "hidden-channel-info";
   // text, voice, category, announcement, stage, forum, media
   const CHANNEL_TYPES = { 0: "Text channel", 2: "Voice channel", 4: "Category", 5: "Announcement channel", 13: "Stage channel", 15: "Forum", 16: "Media channel" };
@@ -23,6 +23,7 @@ const implementation = (() => {
   let ChannelStore;
   let GuildStore;
   let SelectedGuildStore;
+  let SelectedChannelStore;
   let PermissionStore;
   let GuildChannelStore;
   let Perms = null;
@@ -34,6 +35,7 @@ const implementation = (() => {
   let initialized = false;
   let hydrationUnsubscribe = null;
   let nameFixApplied = false;
+  let enteringUntil = 0;
   let sheetState = { channelId: null, onOpen: null };
 
   const cfg = () => rainStore.useStore.getState();
@@ -133,17 +135,17 @@ const implementation = (() => {
   function CustomRow(p) {
     const C = palette(), h = React.createElement;
     const key = p.__fallbackIcon ? (kitIconKey(p) || "gear") : kitIconKey(p);
-    const tile = key ? KitTile({ k: key, size: 34 }) : null;
+    const tile = key ? KitTile({ k: key, size: p.dense ? 30 : 34 }) : null;
     return h(RN.Pressable, {
       accessibilityRole: p.onPress ? "button" : undefined, onPress: p.onPress, disabled: !p.onPress,
-      style: ({ pressed }) => ({ minHeight: 66, paddingHorizontal: 16, paddingVertical: 13, flexDirection: "row", alignItems: "center", backgroundColor: pressed ? C.press : "transparent" })
+      style: ({ pressed }) => ({ minHeight: p.dense ? 48 : 66, paddingHorizontal: 16, paddingVertical: p.dense ? 7 : 13, flexDirection: "row", alignItems: "center", backgroundColor: pressed ? C.press : "transparent" })
     },
       tile,
       h(RN.View, { style: { flex: 1, minWidth: 0, paddingRight: 10 } },
-        h(RN.Text, { numberOfLines: 2, style: { color: C.text, fontSize: 16, fontWeight: "600", lineHeight: 21 } }, p.title),
-        p.subtitle ? h(RN.Text, { numberOfLines: 3, style: { color: C.sub, fontSize: 13, marginTop: 3, lineHeight: 18 } }, p.subtitle) : null),
+        h(RN.Text, { numberOfLines: 2, style: { color: C.text, fontSize: p.dense ? 14 : 16, fontWeight: "600", lineHeight: p.dense ? 18 : 21 } }, p.title),
+        p.subtitle ? h(RN.Text, { numberOfLines: p.dense ? 2 : 3, style: { color: C.sub, fontSize: 13, marginTop: p.dense ? 1 : 3, lineHeight: p.dense ? 17 : 18 } }, p.subtitle) : null),
       p.trailing || null,
-      !p.last ? h(RN.View, { style: { position: "absolute", bottom: 0, left: key ? 63 : 16, right: 0, height: 1, backgroundColor: C.card2 } }) : null);
+      !p.last ? h(RN.View, { style: { position: "absolute", bottom: 0, left: key ? (p.dense ? 59 : 63) : 16, right: 0, height: 1, backgroundColor: C.card2 } }) : null);
   }
   function CustomSwitch(p) {
     const C = palette(), h = React.createElement, on = !!p.value;
@@ -228,6 +230,7 @@ const implementation = (() => {
     ChannelStore = ChannelStore || findByStoreName("ChannelStore");
     GuildStore = GuildStore || findByStoreName("GuildStore");
     SelectedGuildStore = SelectedGuildStore || findByStoreName("SelectedGuildStore");
+    try { SelectedChannelStore = SelectedChannelStore || findByStoreName("SelectedChannelStore"); } catch (_) {}
     PermissionStore = PermissionStore || findByStoreName("PermissionStore");
     GuildChannelStore = GuildChannelStore || findByStoreName("GuildChannelStore");
     return !!ChannelStore;
@@ -296,7 +299,7 @@ const implementation = (() => {
     const created = snowflakeTime(ch.id);
     const pinMs = pin ? new Date(pin).getTime() : 0;
     return [
-      ["Topic", ch.topic ? clip(String(ch.topic).replace(/\s+/g, " ").trim(), 220) : "No topic", "text"],
+      ["Topic", ch.topic ? clip(String(ch.topic).replace(/\s+/g, " ").trim(), 120) : "No topic", "text"],
       ["Type", CHANNEL_TYPES[ch.type] || "Channel", "server"],
       ["Created", created ? when(created) : "Unknown", "time"],
       ["Last message", last ? when(snowflakeTime(last)) : "No messages", "chat"],
@@ -395,19 +398,17 @@ const implementation = (() => {
     const parts = sheetParts();
     const ch = getChannel(sheetState.channelId);
     const rows = ch ? infoRows(ch) : [["Channel", "This channel is no longer available.", "chat"]];
-    const body = h(RN.View, { style: { paddingHorizontal: 16, paddingBottom: 24 } },
-      h(RN.View, { style: { flexDirection: "row", alignItems: "center", paddingTop: 4, paddingBottom: 14 } },
+    const body = h(RN.View, { style: { paddingHorizontal: 16, paddingBottom: 16 } },
+      h(RN.View, { style: { flexDirection: "row", alignItems: "center", paddingTop: 2, paddingBottom: 10 } },
         KitTile({ k: "lock", size: 40 }),
         h(RN.View, { style: { flex: 1 } },
           h(RN.Text, { numberOfLines: 1, style: { color: C.text, fontSize: 20, fontWeight: "800" } }, "Hidden channel"),
-          h(RN.Text, { numberOfLines: 2, style: { color: C.sub, fontSize: 13, marginTop: 2 } }, channelLabel(ch))),
+          h(RN.Text, { numberOfLines: 1, style: { color: C.sub, fontSize: 13, marginTop: 2 } }, channelLabel(ch))),
         parts.Close ? h(parts.Close, { onPress: closeSheet }) : null),
-      h(RN.ScrollView, { style: { maxHeight: Math.round(RN.Dimensions.get("window").height * 0.55) }, showsVerticalScrollIndicator: false, nestedScrollEnabled: true },
-        h(CustomSection, { key: "info", compact: true, footer: "Discord does not send messages from channels you cannot access, so their content cannot be shown." },
-          ...rows.map((r, i) => h(CustomRow, { key: r[0], icon: r[2], title: r[0], subtitle: r[1], last: i === rows.length - 1 })))),
-      h(CustomSection, { key: "actions", compact: true },
-        ch ? h(CustomAction, { title: "Open anyway", onPress: () => openAnyway(sheetState.channelId) }) : null,
-        h(CustomAction, { title: "Close", secondary: true, onPress: closeSheet })));
+      h(CustomSection, { key: "info", compact: true, footer: "Discord does not send messages from hidden channels." },
+        ...rows.map((r, i) => h(CustomRow, { key: r[0], dense: true, icon: r[2], title: r[0], subtitle: r[1], last: i === rows.length - 1 }))),
+      ch ? h(CustomSection, { key: "actions", compact: true },
+        h(CustomAction, { title: "Open anyway", compact: true, onPress: () => openAnyway(sheetState.channelId) })) : null);
     return parts.ActionSheet ? h(parts.ActionSheet, null, body) : body;
   }
 
@@ -419,13 +420,25 @@ const implementation = (() => {
     if (m) return m[1];
     return /^\d+$/.test(a) ? a : null;
   }
+  // Entering a server makes Discord open its last/first channel by itself. When that channel is hidden the
+  // info card must not pop up: only a tap on a hidden channel inside the current server shows it.
+  const ENTER_WINDOW = 1500;
+  const markEntering = () => { enteringUntil = Date.now() + ENTER_WINDOW; };
+  const selectedChannelId = () => { try { return SelectedChannelStore && SelectedChannelStore.getChannelId() || null; } catch (_) { return null; } };
+  function isAutoOpen(ch) {
+    if (Date.now() < enteringUntil) return true;
+    const g = guildOf(ch);
+    if (g && String(g) !== String(currentGuildId() || "")) return true;
+    return selectedChannelId() === String(ch.id);
+  }
   function patchNavigation() {
-    const guard = (args, orig) => {
+    const guard = (args, orig, key) => {
       try {
+        if (key && /guild/i.test(key)) markEntering();
         if (!bypassing && cfg().showPopup) {
           const id = channelIdFromArgs(args);
           const ch = id ? getChannel(id) : null;
-          if (ch && isHidden(ch) && openInfo(ch, () => orig(...args))) return undefined;
+          if (ch && isHidden(ch) && !isAutoOpen(ch) && openInfo(ch, () => orig(...args))) return undefined;
         }
       } catch (_) {}
       return orig(...args);
@@ -434,8 +447,16 @@ const implementation = (() => {
     let g = null, c = null;
     try { g = findByProps("transitionToGuild"); } catch (_) {}
     try { c = findByProps("transitionToChannel"); } catch (_) {}
-    if (g) for (const key of Object.keys(g)) if (typeof g[key] === "function") { unpatches.push(patcher.instead(key, g, guard)); n++; }
-    if (c && c !== g && typeof c.transitionToChannel === "function") { unpatches.push(patcher.instead("transitionToChannel", c, guard)); n++; }
+    if (g) for (const key of Object.keys(g)) if (typeof g[key] === "function") { unpatches.push(patcher.instead(key, g, (args, orig) => guard(args, orig, key))); n++; }
+    if (c && c !== g && typeof c.transitionToChannel === "function") { unpatches.push(patcher.instead("transitionToChannel", c, (args, orig) => guard(args, orig, "transitionToChannel"))); n++; }
+    try {
+      if (SelectedGuildStore && typeof SelectedGuildStore.addChangeListener === "function") {
+        let last = currentGuildId();
+        const onGuild = () => { const now = currentGuildId(); if (now !== last) { last = now; markEntering(); } };
+        SelectedGuildStore.addChangeListener(onGuild);
+        unpatches.push(() => { try { SelectedGuildStore.removeChangeListener(onGuild); } catch (_) {} });
+      }
+    } catch (_) {}
     return n;
   }
 
@@ -517,19 +538,13 @@ const implementation = (() => {
       ["Hidden channels in the list", "Channels you cannot access now show up in the channel list of every server, marked with a lock."],
       ["Tapping one", "A card shows the topic, type, creation date, last message and last pin. Open anyway tries to open the channel, but Discord does not send its messages, so it will look empty."],
       ["Not showing up?", "If the channels do not appear right after you turn the plugin on, switch to another server and back, or restart Discord once."],
-      ["Names say No Access?", "Discord is rolling out a change that stops sending the names of channels you cannot access. The fix below sets that experiment to Not Eligible. Restart Discord after turning it on. If names do not come back, log out and back in once."],
+      ["Names say No Access?", "Discord is rolling out a change that stops sending the names of channels you cannot access. The plugin turns that experiment off by itself. Restart Discord once after the first install; if names still do not come back, log out and back in once."],
     ] });
     return h(RN.ScrollView, { style: { flex: 1 }, keyboardShouldPersistTaps: "handled", contentContainerStyle: { padding: 16, paddingBottom: 42 } },
       h(KitHero, { key: "hero", icon: "lock", title: "Show Hidden Channels", subtitle: "See channels you cannot access", stats: [["Servers", serversWithHidden()], ["No Access", missingNames()]] }),
       h(CustomSection, { key: "options", title: "Options" },
         toggle("showIcon", "Show lock icon", "Mark hidden channels with a lock in the channel list.", "lock"),
         toggle("showPopup", "Show info card", "Show topic, creation date and last message before opening a hidden channel.", "guide", true)),
-      h(CustomSection, { key: "names", title: "Names", footer: "Needs a restart of Discord. The No Access number above counts channels that still show the placeholder name; it should drop to 0 after the restart." },
-        toggle("fixNames", "Fix \"No Access\" names", "Set Discord's private channel hiding experiment to Not Eligible so real names come back.", "shield", true, (v) => {
-          const ok = applyNameFix(v);
-          nameFixApplied = v && ok;
-          toast(ok ? "Restart Discord to apply the change" : "Could not change the experiment");
-        })),
       guide,
       h(RN.Text, { style: { color: C.sub, fontSize: 12, textAlign: "center", marginTop: 1, opacity: 0.7 } }, "Show Hidden Channels " + BUILD));
   }
@@ -539,7 +554,7 @@ const implementation = (() => {
     if (!loadRequested || initialized) return;
     initialized = true;
     const s = cfg();
-    const defaults = { showIcon: true, showPopup: true, fixNames: true };
+    const defaults = { showIcon: true, showPopup: true };
     const missing = {};
     for (const k of Object.keys(defaults)) if (s[k] === undefined) missing[k] = defaults[k];
     if (Object.keys(missing).length) rainStore.useStore.getState().updateSettings(missing);
@@ -548,11 +563,9 @@ const implementation = (() => {
     patchNavigation();
     patchLock();
     nudge();
-    if (cfg().fixNames !== false) {
-      nameFixApplied = applyNameFix(true);
-      const missing = missingNames();
-      if (nameFixApplied && missing > 0) toast("Restart Discord once to restore " + missing + " channel " + (missing === 1 ? "name" : "names"));
-    }
+    nameFixApplied = applyNameFix(true);
+    const noName = missingNames();
+    if (nameFixApplied && noName > 0) toast("Restart Discord once to restore " + noName + " channel " + (noName === 1 ? "name" : "names"));
   }
 
   function onLoad() {

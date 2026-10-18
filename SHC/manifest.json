@@ -2,7 +2,7 @@
   "id": "showhiddenchannels",
   "name": "Show Hidden Channels",
   "description": "Shows channels you cannot access in the channel list with a lock, and opens an info card (topic, creation date, last message) when you tap one. Check the plugin settings!",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "authors": [
     "dariussbezy"
   ],
