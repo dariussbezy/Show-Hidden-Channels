@@ -9,7 +9,7 @@ const implementation = (() => {
   const { findByProps, findByStoreName } = metro;
   const { React, ReactNative: RN } = metro.common;
 
-  const BUILD = "v1.0.2";
+  const BUILD = "v1.0.3";
   const SHEET_KEY = "hidden-channel-info";
   // text, voice, category, announcement, stage, forum, media
   const CHANNEL_TYPES = { 0: "Text channel", 2: "Voice channel", 4: "Category", 5: "Announcement channel", 13: "Stage channel", 15: "Forum", 16: "Media channel" };
@@ -516,14 +516,25 @@ const implementation = (() => {
   }
 
   /* ---- refresh ---- */
-  function nudge() {
+  function nudge(deferUntilIdle = false) {
     const poke = () => {
+      if (!loadRequested) return;
       for (const st of [PermissionStore, GuildChannelStore, ChannelStore, GuildStore]) {
         try { st && st.emitChange && st.emitChange(); } catch (_) {}
       }
     };
-    poke();
-    for (const ms of [600, 1800, 4000]) timers.push(setTimeout(poke, ms));
+    if (!deferUntilIdle) { poke(); return; }
+    timers.push(setTimeout(() => {
+      if (!loadRequested) return;
+      try {
+        const manager = RN.InteractionManager;
+        if (manager && typeof manager.runAfterInteractions === "function") {
+          manager.runAfterInteractions(poke);
+          return;
+        }
+      } catch (_) {}
+      poke();
+    }, 900));
   }
 
   /* ---- settings ---- */
@@ -562,10 +573,8 @@ const implementation = (() => {
     if (!patchPermissions()) { toast("Show Hidden Channels: permissions module not found"); return; }
     patchNavigation();
     patchLock();
-    nudge();
     nameFixApplied = applyNameFix(true);
-    const noName = missingNames();
-    if (nameFixApplied && noName > 0) toast("Restart Discord once to restore " + noName + " channel " + (noName === 1 ? "name" : "names"));
+    nudge(true);
   }
 
   function onLoad() {
