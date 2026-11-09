@@ -35,13 +35,13 @@ The No Access handling applies only to the matching client experiment in this se
 
 ## Access details
 
-The card uses Discord’s BottomSheetScrollView inside its action sheet, with a bounded viewport for longer content. Cards and section buttons use the original plugin controls, with padded content inside rounded containers. Open a hidden channel's information card to see **Allowed roles**, **Allowed members (cached)** and **Permission overrides**. Member and override sections can be expanded. Use **Show more** to browse additional entries. Close and reopen the card to reread the current Discord cache.
+The card uses Discord’s BottomSheetScrollView inside its action sheet, with a bounded viewport for longer content. Cards and section buttons use the original plugin controls, with padded content inside rounded containers. Open a hidden channel's information card to see **Allowed roles**, **Allowed members** and **Permission overrides**. Roles, members and permission sections start collapsed and can be expanded. Use **Show more** to browse additional entries. Close and reopen the card to reread the current Discord cache.
 
 Visibility is calculated from the original metadata, independently of this plugin's local visibility patch. The calculation applies the @everyone role, base role permissions, @everyone overrides, combined role denies/allows, and finally member overrides. Server owners and roles with Administrator bypass channel restrictions.
 
 Each role is evaluated together with @everyone; combinations of roles and member-specific rules can change a particular person's access. The permission rules section shows explicit channel overrides, with permission names. Unlisted permissions are inherited; the rules are not a complete effective-permission list.
 
-The member list is **partial**: the plugin uses cached members, available explicit member targets, and the server owner. The general cache scan is capped at 500 members. It does not download a server's full member list. Unknown role data is treated as undetermined rather than falsely denied, and uncached names fall back to IDs.
+The member list is **partial**: the plugin uses locally available members, available explicit member targets, and the server owner. The general cache scan is capped at 500 members. It does not download a server's full member list. Unknown role data is treated as undetermined rather than falsely denied, and unresolved names fall back to IDs.
 
 ## Privacy
 

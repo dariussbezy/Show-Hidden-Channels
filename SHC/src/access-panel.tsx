@@ -34,7 +34,7 @@ function snapshot(channelId: string) {
   const overwrites: Overwrite[] | null =
     raw == null ? null : values(raw).filter((o) => o?.id);
   const roleName = (id: string) =>
-    id === gid ? "@everyone" : roles.get(id)?.name || `Role ${id} (not cached)`;
+    id === gid ? "@everyone" : roles.get(id)?.name || `Role ${id}`;
   const memberName = (id: string, member?: any) => {
     const u = users?.getUser?.(id) || member?.user;
     return (
@@ -42,7 +42,7 @@ function snapshot(channelId: string) {
       u?.globalName ||
       u?.global_name ||
       u?.username ||
-      `User ${id} (not cached)`
+      `User ${id}`
     );
   };
   const evaluate = createAccessEvaluator(gid, roles, overwrites, owner);
@@ -118,7 +118,8 @@ export default function AccessPanel({
     [memberLimit, setMembers] = React.useState(20),
     [ruleLimit, setRules] = React.useState(10),
     [showMembers, toggleMembers] = React.useState(false),
-    [showRules, toggleRules] = React.useState(false);
+    [showRules, toggleRules] = React.useState(false),
+    [showRoles, toggleRoles] = React.useState(false);
   const data = React.useMemo(() => {
     try {
       return snapshot(channelId);
@@ -171,32 +172,38 @@ export default function AccessPanel({
   if (!data) return note("Access details unavailable.");
   return (
     <RN.View>
-      <Section title={`Allowed roles · ${data.allowedRoles.length}`} compact>
-        <RN.View style={{ padding: 12 }}>
-          {chips(data.allowedRoles.slice(0, roleLimit))}
-          {!data.rolesKnown || !data.rulesKnown
-            ? note("Some access data is unavailable.")
-            : !data.allowedRoles.length
-              ? note("No roles found in the available data.")
+      {control(
+        `${showRoles ? "Hide" : "Show"} allowed roles · ${data.allowedRoles.length}`,
+        () => toggleRoles((v) => !v),
+      )}
+      {showRoles ? (
+        <Section title={`Allowed roles · ${data.allowedRoles.length}`} compact>
+          <RN.View style={{ padding: 12 }}>
+            {chips(data.allowedRoles.slice(0, roleLimit))}
+            {!data.rolesKnown || !data.rulesKnown
+              ? note("Some access data is unavailable.")
+              : !data.allowedRoles.length
+                ? note("No roles found in the available data.")
+                : null}
+            {data.allowedRoles.length > roleLimit
+              ? control("Show more roles", () => setRoles((n) => n + 20))
               : null}
-          {data.allowedRoles.length > roleLimit
-            ? control("Show more roles", () => setRoles((n) => n + 20))
-            : null}
-        </RN.View>
-      </Section>
+          </RN.View>
+        </Section>
+      ) : null}
       {control(
         `${showMembers ? "Hide" : "Show"} members · ${data.allowedMembers.length}`,
         () => toggleMembers((v) => !v),
       )}
       {showMembers ? (
-        <Section title="Allowed members (cached)" compact>
+        <Section title="Allowed members" compact>
           <RN.View style={{ padding: 12 }}>
             {note(
-              `Cached members only · ${data.cachedCount} checked${data.limited ? " · scan limited to 500" : ""}${data.unknown ? ` · ${data.unknown} undetermined` : ""}. This is not a full server member list.`,
+              `${data.cachedCount} members checked${data.limited ? " · scan limited to 500" : ""}${data.unknown ? ` · ${data.unknown} undetermined` : ""}. This is not a full server member list.`,
             )}
             {chips(data.allowedMembers.slice(0, memberLimit))}
             {!data.allowedMembers.length
-              ? note("No members identified from the cache.")
+              ? note("No members identified from the available data.")
               : null}
             {data.allowedMembers.length > memberLimit
               ? control("Show more members", () => setMembers((n) => n + 20))
