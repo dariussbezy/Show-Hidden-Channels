@@ -6,9 +6,9 @@ Show hidden channel metadata in the server channel list, using the original Show
 
 - **Hidden channels in the list**, for supported text, voice, category, announcement, stage, forum and media channels already supplied by Discord.
 - **Lock indicators**, with an option to turn them off.
-- **Information card** showing the topic, channel type, creation date and available last-message/last-pin timestamps.
+- **Information card** showing only creation, last-message and last-pin dates. Missing dates are labeled **Unknown**.
 - **Open anyway** opens the channel view; hidden-channel message history is not loaded. Hidden voice channels cannot be joined through the plugin.
-- **Allowed roles and cached members**, calculated from original role permissions and channel overrides, including owner and Administrator access.
+- **Compact role and member chips**, laid out side by side and wrapping onto additional lines, calculated from original role permissions and channel overrides, including owner and Administrator access.
 - **Permission overrides** listing explicit allowed and denied permissions for each role or member.
 - **Info card toggle**, plus the original settings cards, counters, quick guide and light/dark colors.
 - **No Access name handling**, using a best-effort session-only override of the matching client experiment. Persisted experiment preferences are not changed.
@@ -27,7 +27,7 @@ The current beta targets Valenced 1.3.0 and Discord 352.6 alpha. Display and nav
 
 ## Channel information
 
-The plugin displays metadata Discord already makes available to your client. It cannot recover channel names, topics, message contents or other data that Discord does not provide. Missing last-message and pin information is labeled **Not provided by Discord** rather than treated as proof that a channel is empty.
+The plugin displays metadata Discord already makes available to your client. It cannot recover channel names, topics, message contents or other data that Discord does not provide. Missing last-message and pin information is labeled **Unknown** rather than treated as proof that a channel is empty.
 
 Tapping a hidden channel in the current server opens its info card when that option is enabled. Entering a server avoids opening the card automatically for its selected channel. **Open anyway** preserves the original navigation action while leaving history and voice access blocked.
 
@@ -35,7 +35,7 @@ The No Access handling applies only to the matching client experiment in this se
 
 ## Access details
 
-Open a hidden channel's information card to see **Allowed roles**, **Allowed members (cached)** and **Permission overrides**. Member and override sections can be expanded. Use **Show more** to browse additional rows and **Refresh access details** to reread the current Discord cache.
+The card uses the native scrollable action sheet for overflow, while keeping the default view compact. Open a hidden channel's information card to see **Allowed roles**, **Allowed members (cached)** and **Permission overrides**. Member and override sections can be expanded. Use **Show more** to browse additional rows and **Refresh access details** to reread the current Discord cache.
 
 Visibility is calculated from the original metadata, independently of this plugin's local visibility patch. The calculation applies the @everyone role, base role permissions, @everyone overrides, combined role denies/allows, and finally member overrides. Server owners and roles with Administrator bypass channel restrictions.
 

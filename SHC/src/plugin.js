@@ -62,7 +62,6 @@ const implementation = (() => {
       showToast(t);
     } catch (_) {}
   };
-  const clip = (s, n) => String(s == null ? "" : s).slice(0, n);
 
   /* ---- Settings colors ---- */
   function palette() {
@@ -904,19 +903,6 @@ const implementation = (() => {
       p2(d.getMinutes())
     );
   }
-  function ago(ms) {
-    const s = Math.max(0, (Date.now() - ms) / 1000);
-    if (s < 60) return "just now";
-    const m = s / 60;
-    if (m < 60) return Math.floor(m) + " min ago";
-    const h = m / 60;
-    if (h < 24) return Math.floor(h) + " h ago";
-    const d = h / 24;
-    if (d < 30) return Math.floor(d) + " days ago";
-    if (d < 365) return Math.floor(d / 30) + " months ago";
-    return Math.floor(d / 365) + " years ago";
-  }
-  const when = (ms) => fmtDate(ms) + " \u00B7 " + ago(ms);
   function channelLabel(ch) {
     if (!ch) return "Unknown channel";
     let guild = null;
@@ -935,24 +921,14 @@ const implementation = (() => {
     const pin = ch.lastPinTimestamp || ch.last_pin_timestamp;
     const created = snowflakeTime(ch.id);
     const pinMs = pin ? new Date(pin).getTime() : 0;
+    const lastMs = last ? snowflakeTime(last) : 0;
     return [
-      [
-        "Topic",
-        ch.topic
-          ? clip(String(ch.topic).replace(/\s+/g, " ").trim(), 120)
-          : "No topic",
-        "text",
-      ],
-      ["Type", CHANNEL_TYPES[ch.type] || "Channel", "server"],
-      ["Created", created ? when(created) : "Unknown", "time"],
-      [
-        "Last message",
-        last ? when(snowflakeTime(last)) : "Not provided by Discord",
-        "chat",
-      ],
-      ["Last pin", pinMs > 0 ? when(pinMs) : "Not provided by Discord", "star"],
+      ["Created", created ? fmtDate(created) : "Unknown", "time"],
+      ["Last message", lastMs > 0 ? fmtDate(lastMs) : "Unknown", "chat"],
+      ["Last pin", pinMs > 0 ? fmtDate(pinMs) : "Unknown", "star"],
     ];
   }
+
   function hiddenIn(guildId) {
     const out = [];
     try {
@@ -1107,13 +1083,8 @@ const implementation = (() => {
       ? infoRows(ch)
       : [["Channel", "This channel is no longer available.", "chat"]];
     const body = h(
-      RN.ScrollView,
-      {
-        style: {
-          maxHeight: Math.round(RN.Dimensions.get("window").height * 0.8),
-        },
-        contentContainerStyle: { paddingHorizontal: 16, paddingBottom: 16 },
-      },
+      RN.View,
+      { style: { paddingHorizontal: 16, paddingBottom: 12 } },
       h(
         RN.View,
         {
@@ -1148,22 +1119,46 @@ const implementation = (() => {
         parts.Close ? h(parts.Close, { onPress: closeSheet }) : null,
       ),
       h(
-        CustomSection,
+        RN.View,
         {
-          key: "info",
-          compact: true,
-          footer:
-            "Only metadata already supplied by Discord is shown. Hidden-channel messages are not loaded.",
+          style: {
+            backgroundColor: C.card,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            marginBottom: 12,
+          },
         },
-        ...rows.map((r, i) =>
-          h(CustomRow, {
-            key: r[0],
-            dense: true,
-            icon: r[2],
-            title: r[0],
-            subtitle: r[1],
-            last: i === rows.length - 1,
-          }),
+        ...rows.map((r) =>
+          h(
+            RN.View,
+            {
+              key: r[0],
+              style: {
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingVertical: 6,
+              },
+            },
+            h(
+              RN.Text,
+              { style: { color: C.sub, fontSize: 13, marginRight: 12 } },
+              r[0],
+            ),
+            h(
+              RN.Text,
+              {
+                style: {
+                  color: C.text,
+                  fontSize: 13,
+                  flexShrink: 1,
+                  textAlign: "right",
+                },
+              },
+              r[1],
+            ),
+          ),
         ),
       ),
       ch
@@ -1172,7 +1167,6 @@ const implementation = (() => {
             palette,
             Section: CustomSection,
             Row: CustomRow,
-            Action: CustomAction,
           })
         : null,
       ch
@@ -1187,7 +1181,17 @@ const implementation = (() => {
           )
         : null,
     );
-    return parts.ActionSheet ? h(parts.ActionSheet, null, body) : body;
+    return parts.ActionSheet
+      ? h(
+          parts.ActionSheet,
+          {
+            scrollable: true,
+            startExpanded: true,
+            maxHeight: Math.round(RN.Dimensions.get("window").height * 0.9),
+          },
+          body,
+        )
+      : body;
   }
 
   /* ---- navigation guard ---- */
@@ -1416,7 +1420,7 @@ const implementation = (() => {
         ],
         [
           "Tapping one",
-          "A card shows the topic, type, creation date, last message and last pin. Open anyway tries to open the channel, but Discord does not send its messages, so it will look empty.",
+          "A compact card shows creation, last message and last pin dates, plus allowed roles. Expand members or permissions for more details. Open anyway tries to open the channel, but Discord does not send its messages, so it will look empty.",
         ],
         [
           "Not showing up?",
@@ -1457,7 +1461,7 @@ const implementation = (() => {
         toggle(
           "showPopup",
           "Show info card",
-          "Show topic, creation date and last message before opening a hidden channel.",
+          "Show dates and access details before opening a hidden channel.",
           "guide",
           true,
         ),

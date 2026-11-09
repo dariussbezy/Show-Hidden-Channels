@@ -57,10 +57,6 @@ function snapshot(channelId: string) {
     .map((id) => ({
       id,
       name: roleName(id),
-      reason:
-        (bits(roles.get(id)?.permissions) ?? 0n) & 8n
-          ? "Administrator"
-          : "View channel granted by base permissions and channel rules",
     }));
   const members = new Map<string, Member>();
   for (const id of [
@@ -88,10 +84,6 @@ function snapshot(channelId: string) {
       allowedMembers.push({
         id,
         name: memberName(id, m),
-        reason:
-          id === owner
-            ? "Server owner"
-            : "View channel granted by effective permissions",
       });
   }
   const rules = (overwrites || []).map((o) => ({
@@ -115,13 +107,7 @@ function snapshot(channelId: string) {
     unknown,
   };
 }
-export default function AccessPanel({
-  channelId,
-  palette,
-  Section,
-  Row,
-  Action,
-}: any) {
+export default function AccessPanel({ channelId, palette, Section, Row }: any) {
   const [revision, refresh] = React.useState(0),
     [roleLimit, setRoles] = React.useState(20),
     [memberLimit, setMembers] = React.useState(20),
@@ -138,114 +124,109 @@ export default function AccessPanel({
   const C = palette();
   const note = (s: string) => (
     <RN.Text
-      style={{ color: C.sub, fontSize: 12, lineHeight: 17, padding: 12 }}
+      style={{ color: C.sub, fontSize: 12, lineHeight: 16, marginBottom: 6 }}
     >
       {s}
     </RN.Text>
   );
-  if (!data)
-    return note(
-      "Access details are unavailable from the current Discord cache.",
-    );
+  const link = (label: string, onPress: () => void) => (
+    <RN.Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={{ paddingVertical: 7 }}
+    >
+      <RN.Text style={{ color: C.sub, fontSize: 13 }}>{label}</RN.Text>
+    </RN.Pressable>
+  );
+  const chips = (items: any[]) => (
+    <RN.View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+      {items.map((item) => (
+        <RN.View
+          key={item.id}
+          style={{
+            backgroundColor: C.chip || C.card,
+            borderRadius: 8,
+            paddingHorizontal: 9,
+            paddingVertical: 5,
+            marginRight: 6,
+            marginBottom: 6,
+            maxWidth: "100%",
+          }}
+        >
+          <RN.Text style={{ color: C.text, fontSize: 13, flexShrink: 1 }}>
+            {item.name}
+          </RN.Text>
+        </RN.View>
+      ))}
+    </RN.View>
+  );
+  if (!data) return note("Access details unavailable.");
   return (
-    <>
-      <Section title={`Allowed roles · ${data.allowedRoles.length}`} compact>
-        {note(
-          "Roles are evaluated with @everyone. Combined roles and member-specific overrides can change access. Administrator bypasses channel restrictions.",
-        )}
-        {data.allowedRoles.slice(0, roleLimit).map((r: any) => (
-          <Row key={r.id} title={r.name} subtitle={r.reason} icon="server" />
-        ))}
-        {!data.rolesKnown || !data.rulesKnown
-          ? note(
-              "Some role or channel permission data is unavailable. This list may be incomplete.",
-            )
-          : !data.allowedRoles.length
-            ? note(
-                "No role granting visibility was found in the available data.",
-              )
-            : null}
-        {data.allowedRoles.length > roleLimit ? (
-          <Action
-            title="Show more roles"
-            secondary
-            compact
-            onPress={() => setRoles((n) => n + 20)}
-          />
-        ) : null}
-      </Section>
-      <Action
-        title={`${showMembers ? "Hide" : "Show"} allowed members · ${data.allowedMembers.length}`}
-        secondary
-        compact
-        onPress={() => toggleMembers((v) => !v)}
-      />
+    <RN.View>
+      <RN.Text
+        style={{
+          color: C.text,
+          fontSize: 14,
+          fontWeight: "600",
+          marginBottom: 8,
+        }}
+      >
+        Allowed roles · {data.allowedRoles.length}
+      </RN.Text>
+      {chips(data.allowedRoles.slice(0, roleLimit))}
+      {!data.rolesKnown || !data.rulesKnown
+        ? note("Some access data is unavailable.")
+        : !data.allowedRoles.length
+          ? note("No roles found in the available data.")
+          : null}
+      {data.allowedRoles.length > roleLimit
+        ? link("Show more roles", () => setRoles((n) => n + 20))
+        : null}
+      {link(
+        `${showMembers ? "▾" : "▸"} Members · ${data.allowedMembers.length}`,
+        () => toggleMembers((v) => !v),
+      )}
       {showMembers ? (
         <Section title="Allowed members (cached)" compact>
           {note(
-            `Evaluated ${data.cachedCount} cached members, including available explicit targets and the server owner. This is not a full server member list.${data.limited ? " The general cache scan is limited to 500 members." : ""}${data.unknown ? ` Access could not be determined for ${data.unknown} members.` : ""}`,
+            `Cached members only · ${data.cachedCount} checked${data.limited ? " · scan limited to 500" : ""}${data.unknown ? ` · ${data.unknown} undetermined` : ""}. This is not a full server member list.`,
           )}
-          {data.allowedMembers.slice(0, memberLimit).map((m: any) => (
-            <Row key={m.id} title={m.name} subtitle={m.reason} icon="chat" />
-          ))}
+          {chips(data.allowedMembers.slice(0, memberLimit))}
           {!data.allowedMembers.length
-            ? note(
-                "No allowed members could be identified from the available cache.",
-              )
+            ? note("No members identified from the cache.")
             : null}
-          {data.allowedMembers.length > memberLimit ? (
-            <Action
-              title="Show more members"
-              secondary
-              compact
-              onPress={() => setMembers((n) => n + 20)}
-            />
-          ) : null}
+          {data.allowedMembers.length > memberLimit
+            ? link("Show more members", () => setMembers((n) => n + 20))
+            : null}
         </Section>
       ) : null}
-      <Action
-        title={`${showRules ? "Hide" : "Show"} permission overrides · ${data.rules.length}`}
-        secondary
-        compact
-        onPress={() => toggleRules((v) => !v)}
-      />
+      {link(`${showRules ? "▾" : "▸"} Permissions · ${data.rules.length}`, () =>
+        toggleRules((v) => !v),
+      )}
       {showRules ? (
         <Section title="Permission overrides" compact>
-          {note(
-            "These are explicit channel rules, not the full effective permissions. Unlisted permissions are inherited. A role allow can override another role deny; member overrides apply last. Server owners and administrators bypass channel restrictions.",
-          )}
+          {note("Explicit channel rules. Unlisted permissions are inherited.")}
           {data.rules.slice(0, ruleLimit).map((r: any) => (
             <Row
               key={r.id}
               title={r.name}
               subtitle={r.details}
               subtitleLines={100}
-              icon="lock"
+              dense
+              noIcon
             />
           ))}
           {!data.rulesKnown
-            ? note("Discord did not provide permission overwrite metadata.")
+            ? note("Permission data unavailable.")
             : !data.rules.length
-              ? note(
-                  "No explicit channel overrides. Permissions are inherited.",
-                )
+              ? note("No explicit overrides.")
               : null}
-          {data.rules.length > ruleLimit ? (
-            <Action
-              title="Show more permission overrides"
-              secondary
-              compact
-              onPress={() => setRules((n) => n + 10)}
-            />
-          ) : null}
+          {data.rules.length > ruleLimit
+            ? link("Show more permissions", () => setRules((n) => n + 10))
+            : null}
         </Section>
       ) : null}
-      <Action
-        title="Refresh access details"
-        secondary
-        compact
-        onPress={() => refresh((n) => n + 1)}
-      />
-    </>
+      {link("Refresh access details", () => refresh((n) => n + 1))}
+    </RN.View>
   );
 }

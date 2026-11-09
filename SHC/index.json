@@ -14,8 +14,8 @@
       "versions": {
         "1.0.0-beta": {
           "url": "https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/refs/heads/main/SHC/Show-Hidden-Channels-Valenced-1.0.0-beta.zip",
-          "sha256": "20ec4fd4604d0175d0959bfa4815c8f9880f68e6f7ac0175f2288bba5746bd67",
-          "size": 12053,
+          "sha256": "dc6fcaab1213556626276a34291da79939ea95bd9cba01310d917ba571bc414d",
+          "size": 11658,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
