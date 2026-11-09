@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Show Hidden Channels",
+  "description": "Show Hidden Channels for Valenced.",
+  "plugins": {
+    "dariuss.show-hidden-channels": {
+      "name": "Show Hidden Channels",
+      "description": "Show hidden channel metadata with lock indicators and an information card.",
+      "author": "dariuss",
+      "icon": "LockIcon",
+      "channels": {
+        "beta": "1.0.0-beta"
+      },
+      "versions": {
+        "1.0.0-beta": {
+          "url": "https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/refs/heads/main/SHC/Show-Hidden-Channels-Valenced-1.0.0-beta.zip",
+          "sha256": "6903de4cf37f19865c7a44958bafc34f4043a8fd367d94c9e26a83ab880a6cb2",
+          "size": 8987,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": ">=352.6 <352.7"
+            }
+          }
+        }
+      }
+    }
+  }
+}
