@@ -8,6 +8,8 @@ Show hidden channel metadata in the server channel list, using the original Show
 - **Lock indicators**, with an option to turn them off.
 - **Information card** showing the topic, channel type, creation date and available last-message/last-pin timestamps.
 - **Open anyway** opens the channel view; hidden-channel message history is not loaded. Hidden voice channels cannot be joined through the plugin.
+- **Allowed roles and cached members**, calculated from original role permissions and channel overrides, including owner and Administrator access.
+- **Permission overrides** listing explicit allowed and denied permissions for each role or member.
 - **Info card toggle**, plus the original settings cards, counters, quick guide and light/dark colors.
 - **No Access name handling**, using a best-effort session-only override of the matching client experiment. Persisted experiment preferences are not changed.
 
@@ -30,6 +32,16 @@ The plugin displays metadata Discord already makes available to your client. It 
 Tapping a hidden channel in the current server opens its info card when that option is enabled. Entering a server avoids opening the card automatically for its selected channel. **Open anyway** preserves the original navigation action while leaving history and voice access blocked.
 
 The No Access handling applies only to the matching client experiment in this session. A reconnect may be needed before available metadata changes. Server-redacted names can remain unavailable.
+
+## Access details
+
+Open a hidden channel's information card to see **Allowed roles**, **Allowed members (cached)** and **Permission overrides**. Member and override sections can be expanded. Use **Show more** to browse additional rows and **Refresh access details** to reread the current Discord cache.
+
+Visibility is calculated from the original metadata, independently of this plugin's local visibility patch. The calculation applies the @everyone role, base role permissions, @everyone overrides, combined role denies/allows, and finally member overrides. Server owners and roles with Administrator bypass channel restrictions.
+
+Each role is evaluated together with @everyone; combinations of roles and member-specific rules can change a particular person's access. The permission rules section shows explicit channel overrides, with permission names. Unlisted permissions are inherited; the rules are not a complete effective-permission list.
+
+The member list is **partial**: the plugin uses cached members, available explicit member targets, and the server owner. The general cache scan is capped at 500 members. It does not download a server's full member list. Unknown role data is treated as undetermined rather than falsely denied, and uncached names fall back to IDs.
 
 ## Privacy
 

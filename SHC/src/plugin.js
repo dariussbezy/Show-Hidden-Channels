@@ -1,3 +1,4 @@
+import AccessPanel from "./access-panel";
 import * as React from "react";
 import * as RN from "react-native";
 import {
@@ -385,7 +386,7 @@ const implementation = (() => {
           ? h(
               RN.Text,
               {
-                numberOfLines: p.dense ? 2 : 3,
+                numberOfLines: p.subtitleLines ?? (p.dense ? 2 : 3),
                 style: {
                   color: C.sub,
                   fontSize: 13,
@@ -1106,8 +1107,13 @@ const implementation = (() => {
       ? infoRows(ch)
       : [["Channel", "This channel is no longer available.", "chat"]];
     const body = h(
-      RN.View,
-      { style: { paddingHorizontal: 16, paddingBottom: 16 } },
+      RN.ScrollView,
+      {
+        style: {
+          maxHeight: Math.round(RN.Dimensions.get("window").height * 0.8),
+        },
+        contentContainerStyle: { paddingHorizontal: 16, paddingBottom: 16 },
+      },
       h(
         RN.View,
         {
@@ -1160,6 +1166,15 @@ const implementation = (() => {
           }),
         ),
       ),
+      ch
+        ? h(AccessPanel, {
+            channelId: String(ch.id),
+            palette,
+            Section: CustomSection,
+            Row: CustomRow,
+            Action: CustomAction,
+          })
+        : null,
       ch
         ? h(
             CustomSection,
