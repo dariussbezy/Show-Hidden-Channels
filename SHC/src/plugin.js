@@ -1074,6 +1074,25 @@ const implementation = (() => {
     sheetState = { channelId: String(ch.id), onOpen };
     return openSheet();
   }
+  function HiddenSheetContent({ children }) {
+    // Resolve inside the sheet, after its provider has initialized the scrollable library.
+    const Scroll =
+      findByProps("BottomSheetScrollView")?.BottomSheetScrollView ||
+      RN.ScrollView;
+    return React.createElement(
+      Scroll,
+      {
+        style: {
+          height: Math.round(RN.Dimensions.get("window").height * 0.75),
+        },
+        contentContainerStyle: { paddingBottom: 24 },
+        nestedScrollEnabled: true,
+        showsVerticalScrollIndicator: true,
+        keyboardShouldPersistTaps: "handled",
+      },
+      children,
+    );
+  }
   function HiddenSheet() {
     const C = palette(),
       h = React.createElement;
@@ -1119,46 +1138,17 @@ const implementation = (() => {
         parts.Close ? h(parts.Close, { onPress: closeSheet }) : null,
       ),
       h(
-        RN.View,
-        {
-          style: {
-            backgroundColor: C.card,
-            borderRadius: 12,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            marginBottom: 12,
-          },
-        },
-        ...rows.map((r) =>
-          h(
-            RN.View,
-            {
-              key: r[0],
-              style: {
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingVertical: 6,
-              },
-            },
-            h(
-              RN.Text,
-              { style: { color: C.sub, fontSize: 13, marginRight: 12 } },
-              r[0],
-            ),
-            h(
-              RN.Text,
-              {
-                style: {
-                  color: C.text,
-                  fontSize: 13,
-                  flexShrink: 1,
-                  textAlign: "right",
-                },
-              },
-              r[1],
-            ),
-          ),
+        CustomSection,
+        { compact: true },
+        ...rows.map((r, i) =>
+          h(CustomRow, {
+            key: r[0],
+            title: r[0],
+            subtitle: r[1],
+            icon: r[2],
+            dense: true,
+            last: i === rows.length - 1,
+          }),
         ),
       ),
       ch
@@ -1167,6 +1157,7 @@ const implementation = (() => {
             palette,
             Section: CustomSection,
             Row: CustomRow,
+            Action: CustomAction,
           })
         : null,
       ch
@@ -1189,7 +1180,7 @@ const implementation = (() => {
             startExpanded: true,
             maxHeight: Math.round(RN.Dimensions.get("window").height * 0.9),
           },
-          body,
+          h(HiddenSheetContent, null, body),
         )
       : body;
   }

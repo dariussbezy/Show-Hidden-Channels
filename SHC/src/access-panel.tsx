@@ -107,9 +107,14 @@ function snapshot(channelId: string) {
     unknown,
   };
 }
-export default function AccessPanel({ channelId, palette, Section, Row }: any) {
-  const [revision, refresh] = React.useState(0),
-    [roleLimit, setRoles] = React.useState(20),
+export default function AccessPanel({
+  channelId,
+  palette,
+  Section,
+  Row,
+  Action,
+}: any) {
+  const [roleLimit, setRoles] = React.useState(20),
     [memberLimit, setMembers] = React.useState(20),
     [ruleLimit, setRules] = React.useState(10),
     [showMembers, toggleMembers] = React.useState(false),
@@ -120,7 +125,7 @@ export default function AccessPanel({ channelId, palette, Section, Row }: any) {
     } catch {
       return null;
     }
-  }, [channelId, revision]);
+  }, [channelId]);
   const C = palette();
   const note = (s: string) => (
     <RN.Text
@@ -129,14 +134,10 @@ export default function AccessPanel({ channelId, palette, Section, Row }: any) {
       {s}
     </RN.Text>
   );
-  const link = (label: string, onPress: () => void) => (
-    <RN.Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={{ paddingVertical: 7 }}
-    >
-      <RN.Text style={{ color: C.sub, fontSize: 13 }}>{label}</RN.Text>
-    </RN.Pressable>
+  const control = (label: string, onPress: () => void) => (
+    <RN.View style={{ marginBottom: 10 }}>
+      <Action title={label} secondary compact top={0} onPress={onPress} />
+    </RN.View>
   );
   const chips = (items: any[]) => (
     <RN.View style={{ flexDirection: "row", flexWrap: "wrap" }}>
@@ -145,15 +146,22 @@ export default function AccessPanel({ channelId, palette, Section, Row }: any) {
           key={item.id}
           style={{
             backgroundColor: C.chip || C.card,
-            borderRadius: 8,
-            paddingHorizontal: 9,
-            paddingVertical: 5,
-            marginRight: 6,
-            marginBottom: 6,
+            borderRadius: 17,
+            paddingHorizontal: 14,
+            paddingVertical: 8,
+            marginRight: 8,
+            marginBottom: 8,
             maxWidth: "100%",
           }}
         >
-          <RN.Text style={{ color: C.text, fontSize: 13, flexShrink: 1 }}>
+          <RN.Text
+            style={{
+              color: C.text,
+              fontSize: 14,
+              fontWeight: "600",
+              flexShrink: 1,
+            }}
+          >
             {item.name}
           </RN.Text>
         </RN.View>
@@ -163,49 +171,50 @@ export default function AccessPanel({ channelId, palette, Section, Row }: any) {
   if (!data) return note("Access details unavailable.");
   return (
     <RN.View>
-      <RN.Text
-        style={{
-          color: C.text,
-          fontSize: 14,
-          fontWeight: "600",
-          marginBottom: 8,
-        }}
-      >
-        Allowed roles · {data.allowedRoles.length}
-      </RN.Text>
-      {chips(data.allowedRoles.slice(0, roleLimit))}
-      {!data.rolesKnown || !data.rulesKnown
-        ? note("Some access data is unavailable.")
-        : !data.allowedRoles.length
-          ? note("No roles found in the available data.")
-          : null}
-      {data.allowedRoles.length > roleLimit
-        ? link("Show more roles", () => setRoles((n) => n + 20))
-        : null}
-      {link(
-        `${showMembers ? "▾" : "▸"} Members · ${data.allowedMembers.length}`,
+      <Section title={`Allowed roles · ${data.allowedRoles.length}`} compact>
+        <RN.View style={{ padding: 12 }}>
+          {chips(data.allowedRoles.slice(0, roleLimit))}
+          {!data.rolesKnown || !data.rulesKnown
+            ? note("Some access data is unavailable.")
+            : !data.allowedRoles.length
+              ? note("No roles found in the available data.")
+              : null}
+          {data.allowedRoles.length > roleLimit
+            ? control("Show more roles", () => setRoles((n) => n + 20))
+            : null}
+        </RN.View>
+      </Section>
+      {control(
+        `${showMembers ? "Hide" : "Show"} members · ${data.allowedMembers.length}`,
         () => toggleMembers((v) => !v),
       )}
       {showMembers ? (
         <Section title="Allowed members (cached)" compact>
-          {note(
-            `Cached members only · ${data.cachedCount} checked${data.limited ? " · scan limited to 500" : ""}${data.unknown ? ` · ${data.unknown} undetermined` : ""}. This is not a full server member list.`,
-          )}
-          {chips(data.allowedMembers.slice(0, memberLimit))}
-          {!data.allowedMembers.length
-            ? note("No members identified from the cache.")
-            : null}
-          {data.allowedMembers.length > memberLimit
-            ? link("Show more members", () => setMembers((n) => n + 20))
-            : null}
+          <RN.View style={{ padding: 12 }}>
+            {note(
+              `Cached members only · ${data.cachedCount} checked${data.limited ? " · scan limited to 500" : ""}${data.unknown ? ` · ${data.unknown} undetermined` : ""}. This is not a full server member list.`,
+            )}
+            {chips(data.allowedMembers.slice(0, memberLimit))}
+            {!data.allowedMembers.length
+              ? note("No members identified from the cache.")
+              : null}
+            {data.allowedMembers.length > memberLimit
+              ? control("Show more members", () => setMembers((n) => n + 20))
+              : null}
+          </RN.View>
         </Section>
       ) : null}
-      {link(`${showRules ? "▾" : "▸"} Permissions · ${data.rules.length}`, () =>
-        toggleRules((v) => !v),
+      {control(
+        `${showRules ? "Hide" : "Show"} permissions · ${data.rules.length}`,
+        () => toggleRules((v) => !v),
       )}
       {showRules ? (
         <Section title="Permission overrides" compact>
-          {note("Explicit channel rules. Unlisted permissions are inherited.")}
+          <RN.View style={{ paddingHorizontal: 14, paddingTop: 12 }}>
+            {note(
+              "Explicit channel rules. Unlisted permissions are inherited.",
+            )}
+          </RN.View>
           {data.rules.slice(0, ruleLimit).map((r: any) => (
             <Row
               key={r.id}
@@ -216,17 +225,22 @@ export default function AccessPanel({ channelId, palette, Section, Row }: any) {
               noIcon
             />
           ))}
-          {!data.rulesKnown
-            ? note("Permission data unavailable.")
-            : !data.rules.length
-              ? note("No explicit overrides.")
-              : null}
-          {data.rules.length > ruleLimit
-            ? link("Show more permissions", () => setRules((n) => n + 10))
-            : null}
+          {!data.rulesKnown || !data.rules.length ? (
+            <RN.View style={{ paddingHorizontal: 14, paddingTop: 6 }}>
+              {note(
+                !data.rulesKnown
+                  ? "Permission data unavailable."
+                  : "No explicit overrides.",
+              )}
+            </RN.View>
+          ) : null}
+          {data.rules.length > ruleLimit ? (
+            <RN.View style={{ padding: 12 }}>
+              {control("Show more permissions", () => setRules((n) => n + 10))}
+            </RN.View>
+          ) : null}
         </Section>
       ) : null}
-      {link("Refresh access details", () => refresh((n) => n + 1))}
     </RN.View>
   );
 }

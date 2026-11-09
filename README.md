@@ -35,7 +35,7 @@ The No Access handling applies only to the matching client experiment in this se
 
 ## Access details
 
-The card uses the native scrollable action sheet for overflow, while keeping the default view compact. Open a hidden channel's information card to see **Allowed roles**, **Allowed members (cached)** and **Permission overrides**. Member and override sections can be expanded. Use **Show more** to browse additional rows and **Refresh access details** to reread the current Discord cache.
+The card uses Discord’s BottomSheetScrollView inside its action sheet, with a bounded viewport for longer content. Cards and section buttons use the original plugin controls, with padded content inside rounded containers. Open a hidden channel's information card to see **Allowed roles**, **Allowed members (cached)** and **Permission overrides**. Member and override sections can be expanded. Use **Show more** to browse additional entries. Close and reopen the card to reread the current Discord cache.
 
 Visibility is calculated from the original metadata, independently of this plugin's local visibility patch. The calculation applies the @everyone role, base role permissions, @everyone overrides, combined role denies/allows, and finally member overrides. Server owners and roles with Administrator bypass channel restrictions.
 
