@@ -46,3 +46,9 @@ The member list is **partial**: the plugin uses locally available members, avail
 ## Privacy
 
 Only the two display preferences are saved locally through Valenced. The plugin does not send message content, account tokens or channel metadata to external services, and it does not request hidden-channel message history. Its permission, navigation, rendering and experiment hooks are removed when it stops.
+
+## Repository structure
+
+Sources use the [official Valenced plugin template](https://github.com/Valenced/valenced-plugin-template/tree/9a4f9187137a75d86fe552d0e594889a6e6fd7e5). The implementation is in [`plugins/SHC/js`](plugins/SHC/js), with shared configuration and the official plugin CLI at the repository root. `./gradlew packageAllPlugins` packages the plugin; `npm run publish:local` prepares the pool and both repository indexes. The `SHC/index.json` installation URL remains supported. Artifacts stay on `main` and the beta channel.
+
+Install development dependencies with `bun install --frozen-lockfile` before running the root scripts. The compiler and SDK revisions are pinned in `package.json`.

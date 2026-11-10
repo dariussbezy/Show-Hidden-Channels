@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "name": "Show Hidden Channels",
+  "description": "Show hidden channel metadata with lock indicators and an information card.",
+  "plugins": {
+    "dariuss.show-hidden-channels": {
+      "name": "Show Hidden Channels",
+      "description": "Show hidden channel metadata with lock indicators and an information card.",
+      "author": "dariuss",
+      "icon": "LockIcon",
+      "channels": {
+        "beta": "1.0.0-beta"
+      },
+      "versions": {
+        "1.0.0-beta": {
+          "url": "https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/refs/heads/main/pool/dariuss.show-hidden-channels@1.0.0-beta.zip",
+          "sha256": "079e2c2e888d88223fab43f20418b36a79f2164f30203d0d87c38d920208db85",
+          "size": 11363,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {
+              "version": ">=352.6 <352.7"
+            }
+          }
+        }
+      }
+    }
+  }
+}

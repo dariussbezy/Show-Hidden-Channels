@@ -1,0 +1,15 @@
+{
+  "name": "Show Hidden Channels",
+  "description": "Show hidden channel metadata with lock indicators and an information card.",
+  "channels": {
+    "dariuss.show-hidden-channels": {
+      "beta": "1.0.0-beta"
+    }
+  },
+  "distribution": {
+    "source": "plugins/SHC",
+    "directory": "SHC",
+    "archive": "Show-Hidden-Channels-Valenced-1.0.0-beta.zip",
+    "repository": "dariussbezy/Show-Hidden-Channels"
+  }
+}
