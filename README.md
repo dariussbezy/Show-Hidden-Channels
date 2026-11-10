@@ -1,5 +1,7 @@
 # Show Hidden Channels for Valenced
 
+> **Development moved:** all plugins and themes are now maintained in [Valenced Plugins & Themes](https://github.com/dariussbezy/dariussbezy-Valenced-Plugins-Themes). Use the [single repository URL](https://raw.githubusercontent.com/dariussbezy/dariussbezy-Valenced-Plugins-Themes/main/index.json) for installation and updates. This repository remains available for historical links.
+
 Show hidden channel metadata in the server channel list, using the original Show Hidden Channels interface. Version: **1.0.0-beta**.
 
 ## Features
@@ -18,7 +20,7 @@ Show hidden channel metadata in the server channel list, using the original Show
 Add this Repository URL in **Valenced → Plugins → Advanced**:
 
 ```text
-https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/refs/heads/main/SHC/index.json
+https://raw.githubusercontent.com/dariussbezy/dariussbezy-Valenced-Plugins-Themes/main/index.json
 ```
 
 Select **beta**, install **Show Hidden Channels**, enable it and restart Discord. Open its settings to configure **Show lock icon** and **Show info card**.
