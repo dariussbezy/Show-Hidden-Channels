@@ -26,8 +26,7 @@ export function showToast(text: string) {
 }
 export function findByProps(...props: string[]): Module | undefined {
   if (props.includes("openLazy")) return ActionSheetActionCreators;
-  if (props.some((p) => ["ActionSheet", "ActionSheetCloseButton"].includes(p)))
-    return Design;
+  if (props.includes("ActionSheet")) return Design;
   const key = props.join("|");
   if (cache.has(key)) return cache.get(key);
   const [value] = lookupModule(withProps(...(props as [string, ...string[]])));

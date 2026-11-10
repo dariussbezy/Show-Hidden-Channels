@@ -14,8 +14,8 @@
       "versions": {
         "1.0.0-beta": {
           "url": "https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/refs/heads/main/pool/dariuss.show-hidden-channels@1.0.0-beta.zip",
-          "sha256": "079e2c2e888d88223fab43f20418b36a79f2164f30203d0d87c38d920208db85",
-          "size": 11363,
+          "sha256": "7ad7fbb31f0e049838a2d5ab22a37cedee64dd2a5711b3d20542c42edfc422f2",
+          "size": 9188,
           "dependencies": {
             "valenced.api": {
               "version": ">=1 <2"
