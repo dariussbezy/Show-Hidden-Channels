@@ -1,3 +1,4 @@
+import manifest from "../manifest.json";
 import { BottomSheet } from "@valenced/externals/gorhom";
 import { Design } from "@valenced/discord/design";
 import {
@@ -29,7 +30,7 @@ const settingsStore = createPluginStore("showhiddenchannels", {
   showPopup: true,
 });
 const implementation = (() => {
-  const BUILD = "1.0.0-beta";
+  const BUILD = manifest.version;
   const SHEET_KEY = "hidden-channel-info";
   // text, voice, category, announcement, stage, forum, media
   const CHANNEL_TYPES = {

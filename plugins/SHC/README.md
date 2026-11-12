@@ -1,6 +1,6 @@
 # Show Hidden Channels for Valenced
 
-Show hidden channel metadata in the server channel list, using the native Discord interface. Version: **1.0.0-beta**.
+Show hidden channel metadata in the server channel list, using the native Discord interface. Version: **1.0.1-beta**.
 
 ## Features
 

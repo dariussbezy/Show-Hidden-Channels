@@ -2,7 +2,7 @@
 
 > Valenced test repository. The combined catalog is available from [dariussbezy's Plugins](https://github.com/dariussbezy/dariussbezy-Plugins).
 
-Show hidden channel metadata in the server channel list, using the native Discord interface. Version: **1.0.0-beta**.
+Show hidden channel metadata in the server channel list, using the native Discord interface. Version: **1.0.1-beta**.
 
 ## Features
 
