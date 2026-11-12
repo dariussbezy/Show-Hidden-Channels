@@ -9,11 +9,11 @@
       "author": "dariuss",
       "icon": "LockIcon",
       "channels": {
-        "beta": "1.0.0-beta"
+        "beta": "1.0.1-beta"
       },
       "versions": {
         "1.0.0-beta": {
-          "url": "https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/refs/heads/main/pool/dariuss.show-hidden-channels@1.0.0-beta.zip",
+          "url": "https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/df58b7792d68e1cfde81b263ad0f18033edf741f/pool/dariuss.show-hidden-channels@1.0.0-beta.zip",
           "sha256": "7ad7fbb31f0e049838a2d5ab22a37cedee64dd2a5711b3d20542c42edfc422f2",
           "size": 9188,
           "dependencies": {
@@ -23,6 +23,17 @@
             "discord": {
               "version": ">=352.6 <352.7"
             }
+          }
+        },
+        "1.0.1-beta": {
+          "url": "https://raw.githubusercontent.com/dariussbezy/Show-Hidden-Channels/df58b7792d68e1cfde81b263ad0f18033edf741f/pool/dariuss.show-hidden-channels@1.0.1-beta.zip",
+          "sha256": "84675c0d42633b7664127cf9f86f80b0848e31115013f8e488f26c198fa613a2",
+          "size": 9317,
+          "dependencies": {
+            "valenced.api": {
+              "version": ">=1 <2"
+            },
+            "discord": {}
           }
         }
       }
